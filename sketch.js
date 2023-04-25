@@ -1,102 +1,122 @@
-class Figura {
-   constructor(x, y, alto, ancho, vx, vy) {
-    this.posicion = createVector(x,y);
-    this.alto = alto;
-    this.ancho = ancho;
-    this.fillred = 255;
-    this.fillgreen = 87;
-    this.fillblue = 57;
-    this.velocidad = createVector(vx,vy);
-  }
-  update()
-  {
-      if (this.posicion.x + this.ancho >= 400)
-        {  
-          let valor = random(3); 
-          this.velocidad.x = this.velocidad.x * -valor;
-         this.velocidad.y = this.velocidad.y * -valor;
-        }
-      this.posicion.add(this.velocidad);
-  }
-  
-}
-
-class Rectangulo extends Figura{
-  constructor(x, y, alto, ancho, vx, vy) {
-      super(x, y, alto, ancho, vx, vy);
-  }
-  
-draw()
-  {
-fill(this.fillred,this.fillgreen,this.fillblue);
-rect(this.posicion.x,this.posicion.y,this.alto,this.ancho);
-  }
-}
-
-class Elipse extends Figura{
-  constructor(x, y, alto, ancho, vx, vy) {
-      super(x, y, alto, ancho, vx, vy);
-  }
-  
-draw()
-  {
-fill(this.fillred,this.fillgreen,this.fillblue);
-ellipse(this.posicion.x,this.posicion.y,this.alto,this.ancho);
-  }
-}
-
-var figuras = [];
-var dibujando = 'circulo';
-var btnCirculo = null;
-var btnRectangulo = null;
-
-
-function mouseClicked() {
-  // Se crea un objeto según la opción actual
-if (mouseY > 25)
-  {
-  if (dibujando == 'circulo')
-    figuras.push(new Elipse(mouseX,mouseY,20,20,3,1));
-  else if (dibujando == 'rectangulo')
-    figuras.push(new Rectangulo(mouseX,mouseY,20,20,2,1));
-  }
-
-  return false;
-}
-
 function setup() {
-  createCanvas(400, 400);
-  
-  btnCirculo = createButton('Circulo');
-  btnCirculo.position(0, 0);
-  btnCirculo.mousePressed(changeCirculo);
-  btnCirculo.style( 'background-color','#cccccc');
-  
-  btnRectangulo = createButton('Rectangulo');
-  btnRectangulo.position(75, 0);
-  btnRectangulo.mousePressed(changeRectangulo);
+  //createCanvas(400,600);
+  createCanvas(displayWidth, displayHeight*0.8);
+  rectMode(CENTER);
+  numCtrl = false;
+  mouseCtrl = true;
+  bounceCount = 0;
+  bounceRecord = 0;
+  ball = new Ball();
+  paddle = new Paddle();
 }
-
-function changeCirculo()
-   {
-     btnCirculo.style( 'background-color','#cccccc');
-     btnRectangulo.style( 'background-color','#f0f0f0');
-     dibujando = 'circulo';
-   }
-function changeRectangulo()
-   {
-     btnRectangulo.style( 'background-color','#cccccc');
-     btnCirculo.style( 'background-color','#f0f0f0');
-     dibujando = 'rectangulo';
-   }
-
- 
 
 function draw() {
-  background(220);
-  figuras.forEach((fig) => 
-   {
-    fig.draw();
-    fig.update();
-   });
+  background(0);
+  textSize(60);
+  fill(255, 50);
+  textAlign(CENTER);
+  text('Score: ' + bounceCount, width / 2, 100);
+  text('Record: ' + bounceRecord, width / 2, 200);
+  ball.show();
+  ball.update();
+  paddle.show();
+  paddle.update();
+}
+
+function mouseControl() {
+  mouseCtrl = true;
+  numCtrl = false;
+}
+
+function numControl() {
+  mouseCtrl = false;
+  numCtrl = true;
+}
+
+function Paddle() {
+  this.x = width / 2;
+  this.y = height - 20;
+  this.speed = 0;
+  this.acc = 0;
+  this.w = 100;
+  this.h = 10;
+
+  this.show = function() {
+    rect(this.x, this.y, this.w, this.h);
+  }
+
+  this.update = function() {
+    if (mouseCtrl) {
+      this.x = mouseX;
+    }
+    if (numCtrl) {
+      this.x += this.speed;
+    }
+
+    if (this.x > width - this.w / 2) this.x = width - this.w / 2;
+    if (this.x < this.w / 2) this.x = this.w / 2;
+
+  }
+
+}
+
+function Ball() {
+  this.pos = createVector(width / 2 + random(-45, 45), 10);
+  this.vel = createVector(0, 0);
+  this.acc = createVector(0, 0.2);
+  this.r = 10;
+
+  this.show = function() {
+    fill(255);
+    ellipse(this.pos.x, this.pos.y, this.r * 2);
+  }
+
+  this.update = function() {
+    this.vel.add(this.acc);
+    this.pos.add(this.vel);
+
+    if (this.pos.x < this.r || this.pos.x > width - this.r) {
+      this.vel.x *= -1;
+    }
+
+    if (this.pos.y > paddle.y - this.r &&
+      this.pos.x > paddle.x - paddle.w / 2 && this.pos.x < paddle.x + paddle.w / 2) {
+      this.pos.y -= 1;
+      this.vel.y *= -1.01;
+      bounceCount++;
+      if (bounceRecord < bounceCount) bounceRecord = bounceCount;
+      this.vel.x -= (paddle.x - this.pos.x) / 15;
+      //this.acc.y *= 1.01;
+      if(bounceCount % 10 == 0 && bounceCount!=0 && paddle.w > 15) {
+       paddle.w -= 10; 
+      }
+    }
+
+    if (this.pos.y > height) {
+      bounceCount = 0;
+      this.pos = createVector(width / 2 - random(-45, 45), 10);
+      this.vel.x = 0;
+      this.vel.y = 0;
+    }
+  }
+}
+
+function keyPressed() {
+  if (numCtrl) {
+    if (keyCode === LEFT_ARROW) {
+      paddle.speed = -6;
+      print('eas');
+    }
+    if (keyCode === RIGHT_ARROW) {
+      paddle.speed = 6;
+    }
+  }
+}
+
+function keyReleased() {
+  if (numCtrl) {
+    if (keyCode === LEFT_ARROW || keyCode === RIGHT_ARROW) {
+      paddle.speed = 0;
+    }
+  }
 }
